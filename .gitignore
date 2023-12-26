@@ -1,0 +1,6 @@
+#Output Directories after compiling
+bin/
+obj/
+
+#User specific configurations
+*.csproj.user

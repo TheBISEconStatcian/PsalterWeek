@@ -22,24 +22,32 @@ namespace WhichPsalmWeek
         private int weekNr = 0;
 
 
-        private DateTime first_advent_sunday, christmas_eve, baptism_of_the_lord, ash_wednesday, easter, pentecost = DateTime.MaxValue;
-        private bool feasts_aready_set = false;
+        private DateTime begin_liturgical_season = DateTime.MaxValue;
 
         public PsalterDay() : this(DateTime.Today){}
         public PsalterDay(DateTime date)
         {
             this.date = date;
-
         }
 
         public LiturgicalSeason calculateLiturgicalSeason()
         {
-            christmas_eve = new DateTime(date.Year, 12, 24);
+            DateTime christmas_eve = new DateTime(date.Year, 12, 24);
             Func<DateTime, DateTime> lastSunday = (date) => date.AddDays(-(int)date.DayOfWeek);
             //The first one will be the sunday, three weeks ago (21 days before) from the 4th advent sunday
-            first_advent_sunday = lastSunday(christmas_eve).AddDays(-21);
+            DateTime first_advent_sunday = lastSunday(christmas_eve).AddDays(-21);
             if (date >= first_advent_sunday && date <= christmas_eve)
+            {
+                begin_liturgical_season = first_advent_sunday;
                 return LiturgicalSeason.Advent;
+            }
+
+            if (date > christmas_eve)
+            {
+                begin_liturgical_season = christmas_eve;
+                return LiturgicalSeason.Christmas;
+            }
+
             /*
              * epiphany sunday is celebrated between 2nd and 8th of january, being the day, in which it is sunday.
              * The baptism of the lord is celebrated on monday if the epiphany sunday is celebrated the 7th or 8th
@@ -47,21 +55,47 @@ namespace WhichPsalmWeek
              */
             Func<DateTime, DateTime> nextSunday = (date) => date.AddDays(7 - (int)date.DayOfWeek);
             DateTime epiphany_sunday = lastSunday(new DateTime(date.Year, 1, 8));
-            baptism_of_the_lord = epiphany_sunday.Day > 6 ? epiphany_sunday.AddDays(1) : nextSunday(epiphany_sunday);
+            DateTime baptism_of_the_lord = epiphany_sunday.Day > 6 ? epiphany_sunday.AddDays(1) : nextSunday(epiphany_sunday);
 
-            if ( date > christmas_eve || date <= baptism_of_the_lord)
+            if (date <= baptism_of_the_lord) //baptism of the lord has the Sunday I psalms
+            {
+                //The whole christmas octave we celebrate the first sunday, so after it we are still on the first week.
+                //Weird case: what about if we end the octave on saturday? We continue with the second week? Probably
+                
+                begin_liturgical_season = new DateTime(date.Year - 1, 12, 31); //Will be for sure the first week of the psaltery "Sunday like"
                 return LiturgicalSeason.Christmas;
+            }
 
-            easter = computus_easter_sunday(date.Year);
-            const int days_between_easter_and_ash = 46;
-            ash_wednesday = easter.AddDays(-days_between_easter_and_ash);
+            DateTime easter = computus_easter_sunday(date.Year);
+            const int DAYS_BETWEEN_EASTER_AND_ASH = 46;
+            DateTime ash_wednesday = easter.AddDays(-DAYS_BETWEEN_EASTER_AND_ASH);
 
             if (date >= ash_wednesday && date < easter)
+            {
+                begin_liturgical_season = ash_wednesday; //Consider that for this case you will need A LOT of special considerations
                 return LiturgicalSeason.Lent;
+            }
+                
 
-            pentecost = easter.AddDays(49);
+            DateTime pentecost = easter.AddDays(49);
             if (date >= easter && date <= pentecost)
+            {
+                begin_liturgical_season = easter;
                 return LiturgicalSeason.Easter;
+            }
+
+            if (date < ash_wednesday)
+                begin_liturgical_season = baptism_of_the_lord.AddDays(1);//The next sunday is already the Second week of the Ordinary time
+            if(date > pentecost)
+            {
+                //Maybe there is another way to have the week set at two and use the difference to calculate for the days before. Consider this
+                begin_liturgical_season = pentecost.AddDays(1);//This will be a Monday, take care
+                //Calculate the week, to do so calculate the week in which we would be on the tuesday before ash wednesday
+                DateTime week2_ordinary = nextSunday(baptism_of_the_lord);
+                DateTime last_ordinary_week_before_lent = lastSunday(ash_wednesday);
+                int week_last_ordinary_week_before_lent = ((last_ordinary_week_before_lent - week2_ordinary).Days / 7) + 2
+                weekNr = week_last_ordinary_week_before_lent + 1;
+            }
 
             return LiturgicalSeason.Ordinary;
         }

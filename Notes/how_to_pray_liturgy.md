@@ -59,3 +59,8 @@ y las Vísperas de las fiestas tienen salmos y cánticos propios"
 They are to be found in the calendar provided by the Vatican II.
 
 Keep reading on page 50.
+
+### Ash-Wednesday
+
+For some reason this day for the **laudes** it is the II Tuesday, at **midday** is Wednesday IV 
+and at **night** it is again II Tuesday. After this day up until the first Lent Sunday we are in week IV.
